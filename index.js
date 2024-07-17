@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
+const upload = require('express-fileupload');
 
 const app = express();
 const port = process.env.PORT || 5006;
@@ -14,6 +15,8 @@ const {notFound, errorHandler}= require('./middleware/errorMiddleware')
 app.use(cors({credentials: true, origin: "http://localhost:3002"}));
 app.use(express.json({extended:true}));
 app.use(express.urlencoded({extended: true}))
+app.use(upload())
+app.use('/uploads', express.static(__dirname + '/uploads'))
 
 
 app.use('/api/users', userRoutes)
