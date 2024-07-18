@@ -134,53 +134,53 @@ const getUser = async (req, res, next) => {
 
 const changeAvatar = async (req, res, next) => {
     try {
-
-        if(!req.files.avatar) {
-            return next(new HttpError("Please Choose an Image.", 422))
+        if (!req.files.avatar) {
+            return next(new HttpError("Please Choose an Image.", 422));
         }
-        //find user from database
-        const user = await User.findById(req.user.id)
 
+        // Find user from database
+        const user = await User.findById(req.user.id);
 
-        //delete old avatar
- 
+        // Delete old avatar if it exists
         if (user.avatar) {
-            fs.unlink(path.join(__dirname, '..', 'uploads', user.avatar), user.avatar), (err) => {
-                if(err) {
-                    return next(new HttpError(err))
+            const avatarPath = path.join(__dirname, '..', 'uploads', user.avatar);
+            fs.unlink(avatarPath, (err) => {
+                if (err) {
+                    return next(new HttpError(err.message, 500));
                 }
-            }
+            });
         }
 
-        const {avatar} = req.files;
+        const { avatar } = req.files;
 
-        //size checking
-
+        // Size checking
         if (avatar.size > 500000) {
-            return next(new HttpError('Profile picture too big.should be less than 500kb'), 422)
+            return next(new HttpError('Profile picture too big. Should be less than 500kb', 422));
         }
 
-        let fileName;
-        fileName = avatar.name;
-        let splittedFilename = fileName.split('.');
-        let newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length - 1]
+        let fileName = avatar.name;
+        let fileExtension = fileName.split('.').pop();
+        let newFilename = `avatar-${uuid()}.${fileExtension}`;
+
+        // Move avatar to uploads directory
         avatar.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err) => {
-            if(err) {
-                return next(new HttpError(err))
+            if (err) {
+                return next(new HttpError(err.message, 500));
             }
 
-            const updatedAvatar = await User.findByIdAndUpdate(req.user.id , {avatar:newFilename}, {new:true})
-            if(!updatedAvatar) {
-                return next(new HttpError("Avatar couldn't be changed", 422))
+            // Update avatar in database
+            const updatedAvatar = await User.findByIdAndUpdate(req.user.id, { avatar: newFilename }, { new: true });
+            if (!updatedAvatar) {
+                return next(new HttpError("Avatar couldn't be changed", 422));
             }
-            res.status(200).json(updatedAvatar)
-        })
 
+            res.status(200).json(updatedAvatar);
+        });
 
     } catch (error) {
-        return next (new HttpError(error))
+        return next(new HttpError(error.message, 500));
     }
-}
+};
 
 
 
@@ -200,6 +200,53 @@ const editUser = async (req, res, next) => {
         if(!name|| !email || !currentPassword || !newPassword ) {
             return next(new HttpError('Fill in all fields', 422))
         }
+
+         //getting user from database
+
+        const user = await User.findById(req.user.id);
+        if(!user) {
+            return next(new HttpError("User not found.", 403))
+        }
+
+        //email doesnt exist
+
+
+        const emailExist = await User.findOne({email});
+        if(emailExist && (emailExist._id != req.user.id)) {
+            return next(new HttpError("Email already exists.", 422))
+        }
+
+
+        //comparing pwds
+
+
+        const validateUserPassword = await bcrypt.compare(currentPassword, user.password)
+        if(!validateUserPassword) {
+            return next(new HttpError(error))
+        }
+
+
+
+        //new password comparison
+
+        if(newPassword !== confirmNewPassword)  {
+            return next(new HttpError("New passwords do not match.", 422))
+        }
+
+
+        //hash new password
+
+        const salt = await bcrypt.genSalt(10)
+        const hash = await bcrypt.hash(newPassword, salt)
+
+        //update into database
+
+
+        const newInfo = await User.findByIdAndUpdate(req.user.id, {name, email, password:hash}, {new:true})
+        res.status(200).json(newInfo)
+
+ 
+
     } catch (error) {
         return next(new HttpError(error))
     }
