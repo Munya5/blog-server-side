@@ -12,7 +12,7 @@ const postRoutes = require('./routes/postRoutes')
 const {notFound, errorHandler}= require('./middleware/errorMiddleware')
 
 // Middleware
-app.use(cors({credentials: true, origin: "http://localhost:3002"}));
+app.use(cors({credentials: true, origin: "http://localhost:3001"}));
 app.use(express.json({extended:true}));
 app.use(express.urlencoded({extended: true}))
 app.use(upload())
@@ -35,7 +35,7 @@ mongoose.connect(mongoURI, {
 .then(() => {
   console.log('MongoDB connected');
   // Start the Express server
-  app.listen(5006, () => {
+  app.listen(process.env.PORT || 5006, () => {
     console.log(`Server started on port ${port}`);
   });
 })
