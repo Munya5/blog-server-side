@@ -152,11 +152,10 @@ const getUserPosts = async(req,res,next) => {
 //PATCH : api/posts/:id
 //PROTECTED
 
-
 const editPost = async (req, res, next) => {
     try {
         const postId = req.params.id;
-        let { title, category, description } = req.body;
+        const { title, category, description } = req.body;
 
         // Validation
         if (!title || !category || description.length < 12) {
@@ -172,73 +171,65 @@ const editPost = async (req, res, next) => {
         }
 
         // Check if the logged-in user is the creator of the post
-        if (post.creator !== req.user.id) {
+        if (post.creator.toString() !== req.user.id) {
             return next(new HttpError("Unauthorized to edit this post", 403));
         }
 
         let updatedPost;
 
-        if (!req.files || Object.keys(req.files).length === 0) {
-            // No new thumbnail provided
-            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, description }, { new: true });
-        } else {
-            // New thumbnail provided
-            const oldPost = await Post.findById(postId);
+        // Check if a new thumbnail file was provided
+        if (req.files && req.files.thumbnail) {
+            const thumbnail = req.files.thumbnail;
 
-            // Delete old thumbnail
-            if (oldPost.thumbnail) {
-                fs.unlink(path.join(__dirname, 'uploads', oldPost.thumbnail), (err) => {
-                    if (err) {
-                        console.error("Error deleting old thumbnail:", err);
-                        return next(new HttpError(err));
-                    }
-
-                    uploadNewThumbnail();
-                });
-            } else {
-                uploadNewThumbnail();
+            // Check file size
+            if (thumbnail.size > 2000000) {
+                return next(new HttpError("Thumbnail too big. Should be less than 2mb", 422));
             }
 
-            function uploadNewThumbnail() {
-                const { thumbnail } = req.files;
+            // Generate new filename
+            const fileName = `${uuid()}-${thumbnail.name}`;
 
-                // Check file size
-                if (thumbnail.size > 2000000) {
-                    return next(new HttpError("Thumbnail too big. Should be less than 2mb", 422));
+            // Move thumbnail to uploads directory
+            thumbnail.mv(path.join(__dirname, 'uploads', fileName), async (err) => {
+                if (err) {
+                    console.error("Error uploading thumbnail:", err);
+                    return next(new HttpError("Error uploading thumbnail", 500));
                 }
 
-                // Generate new filename
-                let fileName = thumbnail.name;
-                let splittedFilename = fileName.split('.');
-                let newFilename = `${splittedFilename[0]}-${uuid()}.${splittedFilename[splittedFilename.length - 1]}`;
+                // Update post with new data including new thumbnail filename
+                updatedPost = await Post.findByIdAndUpdate(postId, {
+                    title,
+                    category,
+                    description,
+                    thumbnail: fileName
+                }, { new: true });
 
-                // Move thumbnail to uploads directory
-                thumbnail.mv(path.join(__dirname, 'uploads', newFilename), async (err) => {
-                    if (err) {
-                        return next(new HttpError(err));
-                    }
+                if (!updatedPost) {
+                    return next(new HttpError("Couldn't update post", 404));
+                }
 
-                    // Update post with new data including new thumbnail
-                    updatedPost = await Post.findByIdAndUpdate(postId, { title, category, description, thumbnail: newFilename }, { new: true });
+                res.status(200).json(updatedPost);
+            });
+        } else {
+            // No new thumbnail provided, update post without modifying thumbnail field
+            updatedPost = await Post.findByIdAndUpdate(postId, {
+                title,
+                category,
+                description
+            }, { new: true });
 
-                    if (!updatedPost) {
-                        return next(new HttpError("Couldn't update post", 404));
-                    }
-
-                    res.status(200).json(updatedPost);
-                });
+            if (!updatedPost) {
+                return next(new HttpError("Couldn't update post", 404));
             }
-        }
 
-        if (!updatedPost) {
-            return next(new HttpError("Couldn't update post", 404));
+            res.status(200).json(updatedPost);
         }
-
-        res.status(200).json(updatedPost);
     } catch (error) {
-        return next(new HttpError(error));
+        console.error('Error editing post:', error);
+        return next(new HttpError("Internal Server Error", 500));
     }
 };
+
 
 
 //=================================== Delete Post

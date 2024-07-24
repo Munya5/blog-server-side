@@ -2,7 +2,7 @@ const { v4: uuid } = require('uuid');
 const bcrypt = require('bcryptjs')
 const User = require('../models/userModel')
 const jwt = require("jsonwebtoken")
-const fs = require('fs')
+const fs = require('fs').promises; // Import fs.promises for async file operations
 const path = require('path')
 
 //####################### REGISTER NEW USER #######################//
@@ -132,59 +132,58 @@ const getUser = async (req, res, next) => {
 //POST : api/users/change-avatar
 //PROTECTED
 
+
 const changeAvatar = async (req, res, next) => {
     try {
-        if (!req.files.avatar) {
-            return next(new HttpError("Please Choose an Image.", 422));
-        }
-
-        // Find user from database
-        const user = await User.findById(req.user.id);
-
-        // Delete old avatar if it exists
-        if (user.avatar) {
-            const avatarPath = path.join(__dirname, '..', 'uploads', user.avatar);
-            fs.unlink(avatarPath, (err) => {
-                if (err) {
-                    return next(new HttpError(err.message, 500));
-                }
-            });
+        // Check if avatar file is included in request
+        if (!req.files || !req.files.avatar) {
+            return next(new HttpError("Please upload an image file.", 422));
         }
 
         const { avatar } = req.files;
 
-        // Size checking
+        // Ensure avatar size is within limit (500KB)
         if (avatar.size > 500000) {
-            return next(new HttpError('Profile picture too big. Should be less than 500kb', 422));
+            return next(new HttpError('Profile picture size should be less than 500KB.', 422));
         }
 
-        let fileName = avatar.name;
-        let fileExtension = fileName.split('.').pop();
-        let newFilename = `avatar-${uuid()}.${fileExtension}`;
+        // Find user from database and get current avatar filename
+        const user = await User.findById(req.user.id);
 
-        // Move avatar to uploads directory
-        avatar.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err) => {
-            if (err) {
-                return next(new HttpError(err.message, 500));
-            }
+        if (!user) {
+            return next(new HttpError("User not found.", 404));
+        }
 
-            // Update avatar in database
-            const updatedAvatar = await User.findByIdAndUpdate(req.user.id, { avatar: newFilename }, { new: true });
-            if (!updatedAvatar) {
-                return next(new HttpError("Avatar couldn't be changed", 422));
-            }
+        const oldAvatar = user.avatar;
 
-            res.status(200).json(updatedAvatar);
-        });
+        // Generate new filename with UUID to ensure uniqueness
+        const fileExtension = avatar.name.split('.').pop();
+        const newFilename = `avatar-${uuid()}.${fileExtension}`;
+
+        // Move avatar file to uploads directory
+        const uploadPath = path.join(__dirname, '..', 'uploads', newFilename);
+        await avatar.mv(uploadPath);
+
+        // Update user's avatar in the database
+        user.avatar = newFilename;
+        await user.save();
+
+        // Delete old avatar if it exists
+        if (oldAvatar) {
+            const avatarPath = path.join(__dirname, '..', 'uploads', oldAvatar);
+            await fs.unlink(avatarPath); // Use fs.promises.unlink for async unlink
+        }
+
+        // Respond with updated user data
+        res.status(200).json({ avatar: newFilename });
 
     } catch (error) {
-        return next(new HttpError(error.message, 500));
+        console.error(`Error in changeAvatar: ${error.message}`);
+        return next(new HttpError('Failed to change avatar.', 500));
     }
 };
 
-
-
-
+module.exports = changeAvatar;
 
 
 
