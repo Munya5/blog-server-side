@@ -5,8 +5,7 @@ require('dotenv').config();
 const upload = require('express-fileupload');
 
 const app = express();
-const port = process.env.PORT; // Remove the fallback to 5006
-
+const port = process.env.PORT ;
 
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
@@ -19,9 +18,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(upload());
 app.use('/uploads', express.static(__dirname + '/uploads'));
 
+// API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 
+// Default Route
+app.get('/', (req, res) => {
+  res.send('API is running...');
+});
+
+// Error Handling Middleware
 app.use(notFound);
 app.use(errorHandler);
 
@@ -42,6 +48,3 @@ mongoose.connect(mongoURI, {
 .catch((error) => {
   console.error('Failed to connect to MongoDB:', error.message);
 });
-
-
-
