@@ -12,7 +12,14 @@ const postRoutes = require('./routes/postRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Middleware
-app.use(cors({ credentials: true, origin: "https://main--resilient-cobbler-e673b6.netlify.app/" }));
+app.use(cors({
+  credentials: true,
+  origin: [
+      "https://main--resilient-cobbler-e673b6.netlify.app", // your main site
+      "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app" // your other site
+  ]
+}));
+
 app.use(express.json({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(upload());
