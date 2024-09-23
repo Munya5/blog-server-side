@@ -5,7 +5,8 @@ require('dotenv').config();
 const upload = require('express-fileupload');
 
 const app = express();
-const port = process.env.PORT || 5006;
+const port = process.env.PORT; // Remove the fallback to 5006
+
 
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
