@@ -12,7 +12,7 @@ const postRoutes = require('./routes/postRoutes')
 const {notFound, errorHandler}= require('./middleware/errorMiddleware')
 
 // Middleware
-app.use(cors({credentials: true, origin: "http://localhost:3001"}));
+app.use(cors({credentials: true, origin: "http://localhost:3002"}));
 app.use(express.json({extended:true}));
 app.use(express.urlencoded({extended: true}))
 app.use(upload())
