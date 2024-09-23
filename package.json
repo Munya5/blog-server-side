@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
-    
-  },
+"scripts": {
+  "build": "echo 'No build step required'",
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+},
+
   "keywords": [],
   "author": "",
   "license": "ISC",
