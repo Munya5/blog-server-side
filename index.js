@@ -15,10 +15,12 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 app.use(cors({
   credentials: true,
   origin: [
-      "https://main--resilient-cobbler-e673b6.netlify.app", // your main site
-      "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app" // your other site
-  ]
+      "https://main--resilient-cobbler-e673b6.netlify.app",
+      "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app"
+  ],
+  exposedHeaders: ['Content-Type', 'Authorization'], // Add any headers you need to expose
 }));
+
 
 app.use(express.json({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
