@@ -182,7 +182,7 @@ const editPost = async (req, res, next) => {
             const thumbnail = req.files.thumbnail;
 
             // Check file size
-            if (thumbnail.size > 2000000) {
+            if (thumbnail.size > 3000000) {
                 return next(new HttpError("Thumbnail too big. Should be less than 2mb", 422));
             }
 
