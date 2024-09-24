@@ -5,7 +5,7 @@ require('dotenv').config();
 const upload = require('express-fileupload');
 
 const app = express();
-const port = process.env.PORT || 5000; // Default to 5000 if PORT is not set
+const port = process.env.PORT ; // Default to 5000 if PORT is not set
 
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
