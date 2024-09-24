@@ -146,84 +146,52 @@ const getUserPosts = async(req,res,next) => {
 
 }
 
-
-
-//=================================== Edit Post
-//PATCH : api/posts/:id
-//PROTECTED
+//edit posts
 
 const editPost = async (req, res, next) => {
     try {
         const postId = req.params.id;
         const { title, category, description } = req.body;
 
-        // Validation
         if (!title || !category || description.length < 12) {
-            return next(new HttpError("Fill in all the fields and ensure description length is at least 12 characters", 422));
+            return next(new HttpError("Fill in all fields and ensure description length is at least 12 characters", 422));
         }
 
-        // Retrieve the post by postId
         const post = await Post.findById(postId);
-
-        // Check if the post exists
         if (!post) {
             return next(new HttpError("Post not found", 404));
         }
 
-        // Check if the logged-in user is the creator of the post
         if (post.creator.toString() !== req.user.id) {
             return next(new HttpError("Unauthorized to edit this post", 403));
         }
 
         let updatedPost;
 
-        // Check if a new thumbnail file was provided
         if (req.files && req.files.thumbnail) {
             const thumbnail = req.files.thumbnail;
-
-            // Check file size
             if (thumbnail.size > 3000000) {
-                return next(new HttpError("Thumbnail too big. Should be less than 2mb", 422));
+                return next(new HttpError("Thumbnail too big. Should be less than 3MB", 422));
             }
 
-            // Generate new filename
             const fileName = `${uuid()}-${thumbnail.name}`;
+            await thumbnail.mv(path.join(__dirname, '..', 'uploads', fileName)); // Use await
 
-            // Move thumbnail to uploads directory
-            thumbnail.mv(path.join(__dirname, 'uploads', fileName), async (err) => {
-                if (err) {
-                    console.error("Error uploading thumbnail:", err);
-                    return next(new HttpError("Error uploading thumbnail", 500));
-                }
-
-                // Update post with new data including new thumbnail filename
-                updatedPost = await Post.findByIdAndUpdate(postId, {
-                    title,
-                    category,
-                    description,
-                    thumbnail: fileName
-                }, { new: true });
-
-                if (!updatedPost) {
-                    return next(new HttpError("Couldn't update post", 404));
-                }
-
-                res.status(200).json(updatedPost);
-            });
-        } else {
-            // No new thumbnail provided, update post without modifying thumbnail field
             updatedPost = await Post.findByIdAndUpdate(postId, {
                 title,
                 category,
-                description
+                description,
+                thumbnail: fileName
             }, { new: true });
-
-            if (!updatedPost) {
-                return next(new HttpError("Couldn't update post", 404));
-            }
-
-            res.status(200).json(updatedPost);
+        } else {
+            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, description }, { new: true });
         }
+
+        if (!updatedPost) {
+            return next(new HttpError("Couldn't update post", 404));
+        }
+
+        res.status(200).json(updatedPost);
     } catch (error) {
         console.error('Error editing post:', error);
         return next(new HttpError("Internal Server Error", 500));
@@ -231,16 +199,12 @@ const editPost = async (req, res, next) => {
 };
 
 
-
-//=================================== Delete Post
-//DELETE : api/posts/:id
-//PROTECTED
-
+//delete posts
 
 const deletePost = async (req, res, next) => {
     try {
         const postId = req.params.id;
-        
+
         if (!postId) {
             return next(new HttpError("Post ID is required.", 400));
         }
@@ -250,34 +214,32 @@ const deletePost = async (req, res, next) => {
             return next(new HttpError("Post not found.", 404));
         }
 
-        const fileName = post.thumbnail;
-        
         if (req.user.id !== String(post.creator)) {
             return next(new HttpError("Unauthorized: You do not have permission to delete this post.", 403));
         }
 
-        // Delete post thumbnail file
+        const fileName = post.thumbnail;
+
         fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async (err) => {
             if (err) {
+                console.error("Error deleting file:", err);
                 return next(new HttpError(err));
             } else {
-                // Delete the post document from the database
                 await Post.findByIdAndDelete(postId);
-                
-                // Decrease post count of the user
                 const currentUser = await User.findById(req.user.id);
                 if (currentUser) {
                     currentUser.posts -= 1;
                     await currentUser.save();
                 }
-                
-                res.json({ message: `Post ${postId} deleted successfully.` });
+                res.json({ message: `Post '${post.title}' deleted successfully.` });
             }
         });
     } catch (error) {
-        return next(new HttpError(error));
+        console.error('Error deleting post:', error);
+        return next(new HttpError("Internal Server Error", 500));
     }
 };
+
 
 
 
