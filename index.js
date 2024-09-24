@@ -5,24 +5,28 @@ require('dotenv').config();
 const upload = require('express-fileupload');
 
 const app = express();
-const port = process.env.PORT ;
+const port = process.env.PORT || 5000; // Default to 5000 if PORT is not set
 
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-// Middleware
-app.use(cors({
+// CORS options
+const corsOptions = {
   credentials: true,
   origin: [
-      "https://main--resilient-cobbler-e673b6.netlify.app",
-      "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app"
+    "https://main--resilient-cobbler-e673b6.netlify.app",
+    "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app"
   ],
-  exposedHeaders: ['Content-Type', 'Authorization'], // Add any headers you need to expose
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Add any other methods you need
+  allowedHeaders: ['Content-Type', 'Authorization'], // Add any custom headers you might use
+  exposedHeaders: ['Content-Type', 'Authorization'], // Headers to expose
+};
 
+// Middleware
+app.use(cors(corsOptions));
 
-app.use(express.json({ extended: true }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(upload());
 app.use('/uploads', express.static(__dirname + '/uploads'));
