@@ -17,7 +17,7 @@ const corsOptions = {
   origin: [
     "https://resilient-cobbler-e673b6.netlify.app"
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Add any other methods you need
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Add any other methods you need
   allowedHeaders: ['Content-Type', 'Authorization'], // Add any custom headers you might use
   exposedHeaders: ['Content-Type', 'Authorization'], // Headers to expose
 };

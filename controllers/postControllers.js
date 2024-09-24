@@ -200,7 +200,6 @@ const editPost = async (req, res, next) => {
 
 
 //delete posts
-
 const deletePost = async (req, res, next) => {
     try {
         const postId = req.params.id;
@@ -220,25 +219,31 @@ const deletePost = async (req, res, next) => {
 
         const fileName = post.thumbnail;
 
-        fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async (err) => {
-            if (err) {
-                console.error("Error deleting file:", err);
-                return next(new HttpError(err));
-            } else {
-                await Post.findByIdAndDelete(postId);
-                const currentUser = await User.findById(req.user.id);
-                if (currentUser) {
-                    currentUser.posts -= 1;
-                    await currentUser.save();
+        if (fileName) {
+            fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return next(new HttpError("Could not delete the file", 500));
+                } else {
+                    await Post.findByIdAndDelete(postId);
+                    const currentUser = await User.findById(req.user.id);
+                    if (currentUser) {
+                        currentUser.posts -= 1;
+                        await currentUser.save();
+                    }
+                    res.json({ message: `Post '${post.title}' deleted successfully.` });
                 }
-                res.json({ message: `Post '${post.title}' deleted successfully.` });
-            }
-        });
+            });
+        } else {
+            await Post.findByIdAndDelete(postId);
+            res.json({ message: `Post '${post.title}' deleted successfully, no file to delete.` });
+        }
     } catch (error) {
         console.error('Error deleting post:', error);
         return next(new HttpError("Internal Server Error", 500));
     }
 };
+
 
 
 
