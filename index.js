@@ -15,8 +15,7 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const corsOptions = {
   credentials: true,
   origin: [
-    "https://main--resilient-cobbler-e673b6.netlify.app",
-    "https://66f196dcc6af494d59fd9b47--resilient-cobbler-e673b6.netlify.app"
+    "https://resilient-cobbler-e673b6.netlify.app"
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Add any other methods you need
   allowedHeaders: ['Content-Type', 'Authorization'], // Add any custom headers you might use
